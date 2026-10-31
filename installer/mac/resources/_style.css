@@ -1,0 +1,8 @@
+body { font: 13px -apple-system, "Helvetica Neue", sans-serif; color: #1e1918; line-height: 1.45; margin: 4px 8px; }
+h1 { font-size: 20px; margin: 0 0 10px; color: #e0397f; }
+h2 { font-size: 14px; margin: 16px 0 4px; }
+.k { color: #0b7a66; font-weight: 600; }
+ul, ol { padding-left: 20px; margin: 4px 0; }
+li { margin: 3px 0; }
+code { font: 12px Menlo, monospace; }
+@media (prefers-color-scheme: dark) { body { color: #ece6d2; } h1 { color: #fc6ca8; } .k { color: #1ec6a6; } }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Installer layout for bndt by Switchkicker. __VERSION__ is filled in by build_pkg.sh. -->
+<installer-gui-script minSpecVersion="2">
+    <title>bndt by Switchkicker</title>
+    <organization>com.switchkicker</organization>
+    <domains enable_localSystem="true" enable_currentUserHome="false" enable_anywhere="false"/>
+    <options customize="allow" require-scripts="false" rootVolumeOnly="true" hostArchitectures="arm64,x86_64"/>
+    <allowed-os-versions>
+        <os-version min="10.13"/>
+    </allowed-os-versions>
+
+    <background file="background.tiff" mime-type="image/tiff" alignment="bottomleft" scaling="none"/>
+    <background-darkAqua file="background.tiff" mime-type="image/tiff" alignment="bottomleft" scaling="none"/>
+    <welcome file="welcome.html" mime-type="text/html"/>
+    <readme file="readme.html" mime-type="text/html"/>
+    <conclusion file="conclusion.html" mime-type="text/html"/>
+
+    <choices-outline>
+        <line choice="vst3"/>
+        <line choice="au"/>
+        <line choice="app"/>
+    </choices-outline>
+
+    <choice id="vst3" title="VST3 plug-in" start_selected="true"
+            description="For Ableton Live, Cubase, Studio One, Bitwig, Reaper and most other DAWs. Installs to /Library/Audio/Plug-Ins/VST3.">
+        <pkg-ref id="com.switchkicker.bndt.vst3"/>
+    </choice>
+    <choice id="au" title="Audio Unit plug-in" start_selected="true"
+            description="For Logic Pro, GarageBand and MainStage. Installs to /Library/Audio/Plug-Ins/Components.">
+        <pkg-ref id="com.switchkicker.bndt.au"/>
+    </choice>
+    <choice id="app" title="Standalone app" start_selected="true"
+            description="Play bndt on its own, no DAW needed. Uses your audio input as the vocoder source. Installs to /Applications.">
+        <pkg-ref id="com.switchkicker.bndt.app"/>
+    </choice>
+
+    <pkg-ref id="com.switchkicker.bndt.vst3" version="__VERSION__" onConclusion="none">vst3.pkg</pkg-ref>
+    <pkg-ref id="com.switchkicker.bndt.au" version="__VERSION__" onConclusion="none">au.pkg</pkg-ref>
+    <pkg-ref id="com.switchkicker.bndt.app" version="__VERSION__" onConclusion="none">app.pkg</pkg-ref>
+</installer-gui-script>

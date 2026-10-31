@@ -1,0 +1,4 @@
+#!/bin/sh
+# Make Logic / GarageBand see the new Audio Unit straight away.
+killall -9 AudioComponentRegistrar >/dev/null 2>&1 || true
+exit 0
