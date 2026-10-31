@@ -49,7 +49,10 @@ component() {   # name  identifier  install-location  [scripts dir]
     # always install to the standard folder, even if a copy was moved elsewhere
     local i=0
     while /usr/libexec/PlistBuddy -c "Print :$i" "$plist" >/dev/null 2>&1; do
-        /usr/libexec/PlistBuddy -c "Set :$i:BundleIsRelocatable false" "$plist"
+        # the key is missing for some bundle types (e.g. .vst3), so add it when Set fails
+        /usr/libexec/PlistBuddy -c "Set :$i:BundleIsRelocatable false" "$plist" 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Add :$i:BundleIsRelocatable bool false" "$plist" 2>/dev/null \
+            || true
         i=$((i + 1))
     done
     local args=(--root "$WORK/root-$name" --component-plist "$plist" --identifier "$ident"
