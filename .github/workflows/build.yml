@@ -1,0 +1,92 @@
+name: Build bndt
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # lets tagged builds attach the installers to a GitHub Release
+
+jobs:
+  macos:
+    runs-on: macos-14
+    env:
+      MAC_CERTS_P12: ${{ secrets.MAC_CERTS_P12 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # files uploaded through the GitHub website lose their "executable" flag
+      - name: Restore script permissions
+        run: chmod +x installer/mac/build_pkg.sh installer/mac/scripts-au/postinstall "installer/mac/Uninstall bndt.command"
+
+      - name: Read version
+        id: ver
+        run: echo "version=$(sed -nE 's/^project\(BNDT VERSION ([0-9.]+)\).*/\1/p' CMakeLists.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Configure (universal arm64 + x86_64)
+        run: cmake -S . -B build -G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+
+      - name: Build
+        run: cmake --build build --config Release -- -quiet
+
+      # Optional: add these repository secrets to sign + notarise with an Apple Developer account.
+      # Without them you get an ad-hoc signed installer (fine for a gift; see "Read Me First.txt" in the DMG).
+      - name: Import signing certificates
+        if: env.MAC_CERTS_P12 != ''
+        env:
+          MAC_CERTS_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+        run: |
+          echo "$MAC_CERTS_P12" | base64 --decode > certs.p12
+          security create-keychain -p ci build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p ci build.keychain
+          security import certs.p12 -k build.keychain -P "$MAC_CERTS_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/productbuild
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci build.keychain
+          rm certs.p12
+
+      - name: Build installer
+        env:
+          SIGN_APP_IDENTITY: ${{ secrets.SIGN_APP_IDENTITY }}
+          SIGN_INSTALLER_IDENTITY: ${{ secrets.SIGN_INSTALLER_IDENTITY }}
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+        run: bash installer/mac/build_pkg.sh build/bndt_artefacts/Release "${{ steps.ver.outputs.version }}" dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bndt-${{ steps.ver.outputs.version }}-macOS
+          path: dist/bndt-*-macOS.dmg
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/bndt-*-macOS.dmg
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item -Recurse build/bndt_artefacts/Release/VST3/bndt.vst3 dist/
+          Copy-Item build/bndt_artefacts/Release/Standalone/bndt.exe dist/
+          Compress-Archive -Path dist/* -DestinationPath bndt-Windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bndt-Windows
+          path: bndt-Windows.zip
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bndt-Windows.zip
